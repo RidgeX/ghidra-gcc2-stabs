@@ -1,0 +1,9 @@
+.gradle/
+.settings/
+bin/
+build/
+dist/
+.antProperties.xml
+.classpath
+.project
+hs_err_pid*
