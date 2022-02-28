@@ -280,26 +280,30 @@ public class StabsScript extends GhidraScript {
         ElfSectionHeader stabSection = elf.getSection(".stab");
         ElfSectionHeader stabstrSection = elf.getSection(".stabstr");
         ElfSectionHeader relStabSection = elf.getSection(".rel.stab");
-        ElfSectionHeader symtabSection = elf.getSection(".symtab");
-        ElfSectionHeader[] sections = elf.getSections();
-        ElfRelocationTable relStab = elf.getRelocationTable(relStabSection);
-        ElfRelocation[] relocs = relStab.getRelocations();
-        ElfSymbolTable symtab = elf.getSymbolTable(symtabSection);
-        ElfSymbol[] symbols = symtab.getSymbols();
-
         Map<Integer, Address> addressMap = new TreeMap<>();
-        for (ElfRelocation reloc : relocs) {
-            int type = reloc.getType();
-            if (type != X86_32_ElfRelocationConstants.R_386_32) {
-                throw new RuntimeException("type != R_386_32");
+        boolean hasRelocs = (relStabSection != null);
+
+        if (hasRelocs) {
+            ElfSectionHeader symtabSection = elf.getSection(".symtab");
+            ElfSectionHeader[] sections = elf.getSections();
+            ElfRelocationTable relStab = elf.getRelocationTable(relStabSection);
+            ElfRelocation[] relocs = relStab.getRelocations();
+            ElfSymbolTable symtab = elf.getSymbolTable(symtabSection);
+            ElfSymbol[] symbols = symtab.getSymbols();
+
+            for (ElfRelocation reloc : relocs) {
+                int type = reloc.getType();
+                if (type != X86_32_ElfRelocationConstants.R_386_32) {
+                    throw new RuntimeException("type != R_386_32");
+                }
+                ElfSymbol symbol = symbols[reloc.getSymbolIndex()];
+                ElfSectionHeader section = sections[symbol.getSectionHeaderIndex()];
+                String sectionName = section.getNameAsString();
+                MemoryBlock memoryBlock = currentProgram.getMemory().getBlock(sectionName);
+                int index = (int)((reloc.getOffset() - 8) / 12);
+                Address address = memoryBlock.getStart().add(symbol.getValue()).add(reloc.getAddend());
+                addressMap.put(index, address);
             }
-            ElfSymbol symbol = symbols[reloc.getSymbolIndex()];
-            ElfSectionHeader section = sections[symbol.getSectionHeaderIndex()];
-            String sectionName = section.getNameAsString();
-            MemoryBlock memoryBlock = currentProgram.getMemory().getBlock(sectionName);
-            int index = (int)((reloc.getOffset() - 8) / 12);
-            Address address = memoryBlock.getStart().add(symbol.getValue()).add(reloc.getAddend());
-            addressMap.put(index, address);
         }
 
         long length = stabSection.getSize();
@@ -325,12 +329,11 @@ public class StabsScript extends GhidraScript {
             if (strx != 0) {
                 str = reader.readTerminatedString(stabStrOffset + unitOffset + strx, '\0');
             }
-            stabAddress = addressMap.get(i);
+            stabAddress = (hasRelocs ? addressMap.get(i) : toAddr(value));
             stabValue = value;
 
             switch (type) {
                 case 0x0:   // UNDF
-                    clearStabs();
                     unitFilename = str;
                     break;
 
@@ -343,6 +346,7 @@ public class StabsScript extends GhidraScript {
                 case 0x64:  // SO
                     if (str.isEmpty()) {
                         importStabs();
+                        clearStabs();
                         sourceDirectory = null;
                         sourceFilename = null;
                     } else if (sourceDirectory == null) {
@@ -367,6 +371,9 @@ public class StabsScript extends GhidraScript {
                     break;
 
                 case 0xc0:  // LBRAC
+                    break;
+
+                case 0xc2:  // EXCL
                     break;
 
                 case 0xe0:  // RBRAC
