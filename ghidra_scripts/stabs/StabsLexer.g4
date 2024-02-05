@@ -10,7 +10,7 @@ SymbolDescReferenceParameter:  'a' -> mode(ModeTypeDesc) ;
 SymbolDescGlobalFunction:      'F' -> mode(ModeTypeDesc) ;
 SymbolDescLocalFunction:       'f' -> mode(ModeTypeDesc) ;
 SymbolDescGlobalVariable:      'G' -> mode(ModeTypeDesc) ;
-SymbolDescRegisterParameter:   'P' -> mode(ModeTypeDesc) ;
+SymbolDescRegisterParameterOrFunctionPrototype: 'P' -> mode(ModeTypeDesc) ;
 SymbolDescStackParameter:      'p' -> mode(ModeTypeDesc) ;
 SymbolDescRegisterVariable:    'r' -> mode(ModeTypeDesc) ;
 SymbolDescStaticFileVariable:  'S' -> mode(ModeTypeDesc) ;
@@ -31,7 +31,7 @@ TypeDescUnion:    'u' -> pushMode(ModeStructType) ;
 TypeDescXref:     'x' -> pushMode(ModeXrefDesc) ;
 RangeSemicolon:   ';' ;
 RangeInt:         INT ;
-StructFirstComma: ',' -> popMode ;
+StrucOrNestedFunctiontFirstComma: ',' -> mode(ModeStructOrNestedFunction) ;
 
 mode ModeTypeNum;
 TypeNumInt:        INT ;
@@ -61,5 +61,14 @@ mode ModeXrefType;
 XrefIdentifier: ID ;
 XrefColon:      ':' -> popMode ;
 
+mode ModeStructOrNestedFunction;
+StructFirstInt: INT -> popMode ;
+NestedFunctionFirstIdentifier: ID -> mode(ModeNestedFunction) ;
+
+mode ModeNestedFunction;
+NestedFunctionIdentifier: ID ;
+NestedFunctionSecondComma: ',' ;
+
+fragment IDStart: [A-Za-z_] ;
 fragment ID:  [A-Za-z_][0-9A-Za-z_]* ;
 fragment INT: '-'? [0-9]+ ;

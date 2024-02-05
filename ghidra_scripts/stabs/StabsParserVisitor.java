@@ -35,6 +35,12 @@ public interface StabsParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFunctionType(StabsParser.FunctionTypeContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link StabsParser#nestedFunctionType}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNestedFunctionType(StabsParser.NestedFunctionTypeContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link StabsParser#pointerType}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

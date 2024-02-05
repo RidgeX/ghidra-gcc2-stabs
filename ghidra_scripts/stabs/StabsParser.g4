@@ -6,9 +6,10 @@ arrayType:    TypeDescArray rangeType type ;
 enumMember:   EnumIdentifier EnumColon EnumInt EnumComma ;
 enumType:     TypeDescEnum enumMember* EnumSemicolon ;
 functionType: TypeDescFunction type ;
+nestedFunctionType: StrucOrNestedFunctiontFirstComma NestedFunctionFirstIdentifier NestedFunctionSecondComma NestedFunctionIdentifier;
 pointerType:  TypeDescPointer type ;
 rangeType:    TypeDescRange type RangeSemicolon RangeInt RangeSemicolon RangeInt RangeSemicolon ;
-structMember: StructIdentifier StructColon type StructFirstComma StructInt StructSecondComma StructInt StructSemicolon ;
+structMember: StructIdentifier StructColon type StrucOrNestedFunctiontFirstComma StructFirstInt StructSecondComma StructInt StructSemicolon ;
 structType:   (TypeDescStruct|TypeDescUnion) StructInt structMember* StructSemicolon ;
 xrefType:     TypeDescXref (XrefDescEnum|XrefDescStruct|XrefDescUnion) XrefIdentifier XrefColon ;
 
@@ -22,7 +23,7 @@ typeDesc: type
         | xrefType
         ;
 typeNum:  TypeNumLeftBrace? TypeNumInt TypeNumComma TypeNumInt TypeNumRightBrace ;
-type:     typeNum (TypeEquals typeDesc)? ;
+type:     typeNum ((TypeEquals typeDesc) | nestedFunctionType)? ;
 
 symbol: SymbolName SymbolColon
         ( SymbolDescStackVariable
@@ -30,7 +31,7 @@ symbol: SymbolName SymbolColon
         | SymbolDescGlobalFunction
         | SymbolDescLocalFunction
         | SymbolDescGlobalVariable
-        | SymbolDescRegisterParameter
+        | SymbolDescRegisterParameterOrFunctionPrototype
         | SymbolDescStackParameter
         | SymbolDescRegisterVariable
         | SymbolDescStaticFileVariable
