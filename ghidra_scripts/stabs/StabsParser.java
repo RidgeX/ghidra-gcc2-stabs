@@ -19,26 +19,28 @@ public class StabsParser extends Parser {
 	public static final int
 		SymbolName=1, SymbolColon=2, SymbolDescStackVariable=3, SymbolDescReferenceParameter=4, 
 		SymbolDescGlobalFunction=5, SymbolDescLocalFunction=6, SymbolDescGlobalVariable=7, 
-		SymbolDescRegisterParameter=8, SymbolDescStackParameter=9, SymbolDescRegisterVariable=10, 
-		SymbolDescStaticFileVariable=11, SymbolDescTaggedType=12, SymbolDescTypedefedType=13, 
-		SymbolDescStaticLocalVariable=14, TypeNumLeftBrace=15, TypeEquals=16, 
-		TypeDescArray=17, TypeDescEnum=18, TypeDescFunction=19, TypeDescPointer=20, 
-		TypeDescRange=21, TypeDescStruct=22, TypeDescUnion=23, TypeDescXref=24, 
-		RangeSemicolon=25, RangeInt=26, StructFirstComma=27, TypeNumInt=28, TypeNumComma=29, 
-		TypeNumRightBrace=30, EnumIdentifier=31, EnumColon=32, EnumInt=33, EnumComma=34, 
-		EnumSemicolon=35, StructIdentifier=36, StructColon=37, StructSecondComma=38, 
-		StructInt=39, StructSemicolon=40, XrefDescEnum=41, XrefDescStruct=42, 
-		XrefDescUnion=43, XrefIdentifier=44, XrefColon=45;
+		SymbolDescRegisterParameterOrFunctionPrototype=8, SymbolDescStackParameter=9, 
+		SymbolDescRegisterVariable=10, SymbolDescStaticFileVariable=11, SymbolDescTaggedType=12, 
+		SymbolDescTypedefedType=13, SymbolDescStaticLocalVariable=14, TypeNumLeftBrace=15, 
+		TypeEquals=16, TypeDescArray=17, TypeDescEnum=18, TypeDescFunction=19, 
+		TypeDescPointer=20, TypeDescRange=21, TypeDescStruct=22, TypeDescUnion=23, 
+		TypeDescXref=24, RangeSemicolon=25, RangeInt=26, StrucOrNestedFunctiontFirstComma=27, 
+		TypeNumInt=28, TypeNumComma=29, TypeNumRightBrace=30, EnumIdentifier=31, 
+		EnumColon=32, EnumInt=33, EnumComma=34, EnumSemicolon=35, StructIdentifier=36, 
+		StructColon=37, StructSecondComma=38, StructInt=39, StructSemicolon=40, 
+		XrefDescEnum=41, XrefDescStruct=42, XrefDescUnion=43, XrefIdentifier=44, 
+		XrefColon=45, StructFirstInt=46, NestedFunctionFirstIdentifier=47, NestedFunctionIdentifier=48, 
+		NestedFunctionSecondComma=49;
 	public static final int
 		RULE_arrayType = 0, RULE_enumMember = 1, RULE_enumType = 2, RULE_functionType = 3, 
-		RULE_pointerType = 4, RULE_rangeType = 5, RULE_structMember = 6, RULE_structType = 7, 
-		RULE_xrefType = 8, RULE_typeDesc = 9, RULE_typeNum = 10, RULE_type = 11, 
-		RULE_symbol = 12;
+		RULE_nestedFunctionType = 4, RULE_pointerType = 5, RULE_rangeType = 6, 
+		RULE_structMember = 7, RULE_structType = 8, RULE_xrefType = 9, RULE_typeDesc = 10, 
+		RULE_typeNum = 11, RULE_type = 12, RULE_symbol = 13;
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"arrayType", "enumMember", "enumType", "functionType", "pointerType", 
-			"rangeType", "structMember", "structType", "xrefType", "typeDesc", "typeNum", 
-			"type", "symbol"
+			"arrayType", "enumMember", "enumType", "functionType", "nestedFunctionType", 
+			"pointerType", "rangeType", "structMember", "structType", "xrefType", 
+			"typeDesc", "typeNum", "type", "symbol"
 		};
 	}
 	public static final String[] ruleNames = makeRuleNames();
@@ -55,16 +57,17 @@ public class StabsParser extends Parser {
 		return new String[] {
 			null, "SymbolName", "SymbolColon", "SymbolDescStackVariable", "SymbolDescReferenceParameter", 
 			"SymbolDescGlobalFunction", "SymbolDescLocalFunction", "SymbolDescGlobalVariable", 
-			"SymbolDescRegisterParameter", "SymbolDescStackParameter", "SymbolDescRegisterVariable", 
-			"SymbolDescStaticFileVariable", "SymbolDescTaggedType", "SymbolDescTypedefedType", 
-			"SymbolDescStaticLocalVariable", "TypeNumLeftBrace", "TypeEquals", "TypeDescArray", 
-			"TypeDescEnum", "TypeDescFunction", "TypeDescPointer", "TypeDescRange", 
-			"TypeDescStruct", "TypeDescUnion", "TypeDescXref", "RangeSemicolon", 
-			"RangeInt", "StructFirstComma", "TypeNumInt", "TypeNumComma", "TypeNumRightBrace", 
-			"EnumIdentifier", "EnumColon", "EnumInt", "EnumComma", "EnumSemicolon", 
-			"StructIdentifier", "StructColon", "StructSecondComma", "StructInt", 
-			"StructSemicolon", "XrefDescEnum", "XrefDescStruct", "XrefDescUnion", 
-			"XrefIdentifier", "XrefColon"
+			"SymbolDescRegisterParameterOrFunctionPrototype", "SymbolDescStackParameter", 
+			"SymbolDescRegisterVariable", "SymbolDescStaticFileVariable", "SymbolDescTaggedType", 
+			"SymbolDescTypedefedType", "SymbolDescStaticLocalVariable", "TypeNumLeftBrace", 
+			"TypeEquals", "TypeDescArray", "TypeDescEnum", "TypeDescFunction", "TypeDescPointer", 
+			"TypeDescRange", "TypeDescStruct", "TypeDescUnion", "TypeDescXref", "RangeSemicolon", 
+			"RangeInt", "StrucOrNestedFunctiontFirstComma", "TypeNumInt", "TypeNumComma", 
+			"TypeNumRightBrace", "EnumIdentifier", "EnumColon", "EnumInt", "EnumComma", 
+			"EnumSemicolon", "StructIdentifier", "StructColon", "StructSecondComma", 
+			"StructInt", "StructSemicolon", "XrefDescEnum", "XrefDescStruct", "XrefDescUnion", 
+			"XrefIdentifier", "XrefColon", "StructFirstInt", "NestedFunctionFirstIdentifier", 
+			"NestedFunctionIdentifier", "NestedFunctionSecondComma"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -143,11 +146,11 @@ public class StabsParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(26);
-			match(TypeDescArray);
-			setState(27);
-			rangeType();
 			setState(28);
+			match(TypeDescArray);
+			setState(29);
+			rangeType();
+			setState(30);
 			type();
 			}
 		}
@@ -184,13 +187,13 @@ public class StabsParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(30);
-			match(EnumIdentifier);
-			setState(31);
-			match(EnumColon);
 			setState(32);
-			match(EnumInt);
+			match(EnumIdentifier);
 			setState(33);
+			match(EnumColon);
+			setState(34);
+			match(EnumInt);
+			setState(35);
 			match(EnumComma);
 			}
 		}
@@ -232,23 +235,23 @@ public class StabsParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(35);
+			setState(37);
 			match(TypeDescEnum);
-			setState(39);
+			setState(41);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			while (_la==EnumIdentifier) {
 				{
 				{
-				setState(36);
+				setState(38);
 				enumMember();
 				}
 				}
-				setState(41);
+				setState(43);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 			}
-			setState(42);
+			setState(44);
 			match(EnumSemicolon);
 			}
 		}
@@ -285,10 +288,53 @@ public class StabsParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(44);
+			setState(46);
 			match(TypeDescFunction);
-			setState(45);
+			setState(47);
 			type();
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.reportError(this, re);
+			_errHandler.recover(this, re);
+		}
+		finally {
+			exitRule();
+		}
+		return _localctx;
+	}
+
+	public static class NestedFunctionTypeContext extends ParserRuleContext {
+		public TerminalNode StrucOrNestedFunctiontFirstComma() { return getToken(StabsParser.StrucOrNestedFunctiontFirstComma, 0); }
+		public TerminalNode NestedFunctionFirstIdentifier() { return getToken(StabsParser.NestedFunctionFirstIdentifier, 0); }
+		public TerminalNode NestedFunctionSecondComma() { return getToken(StabsParser.NestedFunctionSecondComma, 0); }
+		public TerminalNode NestedFunctionIdentifier() { return getToken(StabsParser.NestedFunctionIdentifier, 0); }
+		public NestedFunctionTypeContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_nestedFunctionType; }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof StabsParserVisitor ) return ((StabsParserVisitor<? extends T>)visitor).visitNestedFunctionType(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+
+	public final NestedFunctionTypeContext nestedFunctionType() throws RecognitionException {
+		NestedFunctionTypeContext _localctx = new NestedFunctionTypeContext(_ctx, getState());
+		enterRule(_localctx, 8, RULE_nestedFunctionType);
+		try {
+			enterOuterAlt(_localctx, 1);
+			{
+			setState(49);
+			match(StrucOrNestedFunctiontFirstComma);
+			setState(50);
+			match(NestedFunctionFirstIdentifier);
+			setState(51);
+			match(NestedFunctionSecondComma);
+			setState(52);
+			match(NestedFunctionIdentifier);
 			}
 		}
 		catch (RecognitionException re) {
@@ -320,13 +366,13 @@ public class StabsParser extends Parser {
 
 	public final PointerTypeContext pointerType() throws RecognitionException {
 		PointerTypeContext _localctx = new PointerTypeContext(_ctx, getState());
-		enterRule(_localctx, 8, RULE_pointerType);
+		enterRule(_localctx, 10, RULE_pointerType);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(47);
+			setState(54);
 			match(TypeDescPointer);
-			setState(48);
+			setState(55);
 			type();
 			}
 		}
@@ -367,23 +413,23 @@ public class StabsParser extends Parser {
 
 	public final RangeTypeContext rangeType() throws RecognitionException {
 		RangeTypeContext _localctx = new RangeTypeContext(_ctx, getState());
-		enterRule(_localctx, 10, RULE_rangeType);
+		enterRule(_localctx, 12, RULE_rangeType);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(50);
+			setState(57);
 			match(TypeDescRange);
-			setState(51);
+			setState(58);
 			type();
-			setState(52);
+			setState(59);
 			match(RangeSemicolon);
-			setState(53);
+			setState(60);
 			match(RangeInt);
-			setState(54);
+			setState(61);
 			match(RangeSemicolon);
-			setState(55);
+			setState(62);
 			match(RangeInt);
-			setState(56);
+			setState(63);
 			match(RangeSemicolon);
 			}
 		}
@@ -404,12 +450,10 @@ public class StabsParser extends Parser {
 		public TypeContext type() {
 			return getRuleContext(TypeContext.class,0);
 		}
-		public TerminalNode StructFirstComma() { return getToken(StabsParser.StructFirstComma, 0); }
-		public List<TerminalNode> StructInt() { return getTokens(StabsParser.StructInt); }
-		public TerminalNode StructInt(int i) {
-			return getToken(StabsParser.StructInt, i);
-		}
+		public TerminalNode StrucOrNestedFunctiontFirstComma() { return getToken(StabsParser.StrucOrNestedFunctiontFirstComma, 0); }
+		public TerminalNode StructFirstInt() { return getToken(StabsParser.StructFirstInt, 0); }
 		public TerminalNode StructSecondComma() { return getToken(StabsParser.StructSecondComma, 0); }
+		public TerminalNode StructInt() { return getToken(StabsParser.StructInt, 0); }
 		public TerminalNode StructSemicolon() { return getToken(StabsParser.StructSemicolon, 0); }
 		public StructMemberContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -424,25 +468,25 @@ public class StabsParser extends Parser {
 
 	public final StructMemberContext structMember() throws RecognitionException {
 		StructMemberContext _localctx = new StructMemberContext(_ctx, getState());
-		enterRule(_localctx, 12, RULE_structMember);
+		enterRule(_localctx, 14, RULE_structMember);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(58);
-			match(StructIdentifier);
-			setState(59);
-			match(StructColon);
-			setState(60);
-			type();
-			setState(61);
-			match(StructFirstComma);
-			setState(62);
-			match(StructInt);
-			setState(63);
-			match(StructSecondComma);
-			setState(64);
-			match(StructInt);
 			setState(65);
+			match(StructIdentifier);
+			setState(66);
+			match(StructColon);
+			setState(67);
+			type();
+			setState(68);
+			match(StrucOrNestedFunctiontFirstComma);
+			setState(69);
+			match(StructFirstInt);
+			setState(70);
+			match(StructSecondComma);
+			setState(71);
+			match(StructInt);
+			setState(72);
 			match(StructSemicolon);
 			}
 		}
@@ -481,12 +525,12 @@ public class StabsParser extends Parser {
 
 	public final StructTypeContext structType() throws RecognitionException {
 		StructTypeContext _localctx = new StructTypeContext(_ctx, getState());
-		enterRule(_localctx, 14, RULE_structType);
+		enterRule(_localctx, 16, RULE_structType);
 		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(67);
+			setState(74);
 			_la = _input.LA(1);
 			if ( !(_la==TypeDescStruct || _la==TypeDescUnion) ) {
 			_errHandler.recoverInline(this);
@@ -496,23 +540,23 @@ public class StabsParser extends Parser {
 				_errHandler.reportMatch(this);
 				consume();
 			}
-			setState(68);
+			setState(75);
 			match(StructInt);
-			setState(72);
+			setState(79);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			while (_la==StructIdentifier) {
 				{
 				{
-				setState(69);
+				setState(76);
 				structMember();
 				}
 				}
-				setState(74);
+				setState(81);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 			}
-			setState(75);
+			setState(82);
 			match(StructSemicolon);
 			}
 		}
@@ -547,14 +591,14 @@ public class StabsParser extends Parser {
 
 	public final XrefTypeContext xrefType() throws RecognitionException {
 		XrefTypeContext _localctx = new XrefTypeContext(_ctx, getState());
-		enterRule(_localctx, 16, RULE_xrefType);
+		enterRule(_localctx, 18, RULE_xrefType);
 		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(77);
+			setState(84);
 			match(TypeDescXref);
-			setState(78);
+			setState(85);
 			_la = _input.LA(1);
 			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << XrefDescEnum) | (1L << XrefDescStruct) | (1L << XrefDescUnion))) != 0)) ) {
 			_errHandler.recoverInline(this);
@@ -564,9 +608,9 @@ public class StabsParser extends Parser {
 				_errHandler.reportMatch(this);
 				consume();
 			}
-			setState(79);
+			setState(86);
 			match(XrefIdentifier);
-			setState(80);
+			setState(87);
 			match(XrefColon);
 			}
 		}
@@ -619,51 +663,51 @@ public class StabsParser extends Parser {
 
 	public final TypeDescContext typeDesc() throws RecognitionException {
 		TypeDescContext _localctx = new TypeDescContext(_ctx, getState());
-		enterRule(_localctx, 18, RULE_typeDesc);
+		enterRule(_localctx, 20, RULE_typeDesc);
 		try {
-			setState(90);
+			setState(97);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case TypeNumLeftBrace:
 			case TypeNumInt:
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(82);
+				setState(89);
 				type();
 				}
 				break;
 			case TypeDescArray:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(83);
+				setState(90);
 				arrayType();
 				}
 				break;
 			case TypeDescEnum:
 				enterOuterAlt(_localctx, 3);
 				{
-				setState(84);
+				setState(91);
 				enumType();
 				}
 				break;
 			case TypeDescFunction:
 				enterOuterAlt(_localctx, 4);
 				{
-				setState(85);
+				setState(92);
 				functionType();
 				}
 				break;
 			case TypeDescPointer:
 				enterOuterAlt(_localctx, 5);
 				{
-				setState(86);
+				setState(93);
 				pointerType();
 				}
 				break;
 			case TypeDescRange:
 				enterOuterAlt(_localctx, 6);
 				{
-				setState(87);
+				setState(94);
 				rangeType();
 				}
 				break;
@@ -671,14 +715,14 @@ public class StabsParser extends Parser {
 			case TypeDescUnion:
 				enterOuterAlt(_localctx, 7);
 				{
-				setState(88);
+				setState(95);
 				structType();
 				}
 				break;
 			case TypeDescXref:
 				enterOuterAlt(_localctx, 8);
 				{
-				setState(89);
+				setState(96);
 				xrefType();
 				}
 				break;
@@ -718,28 +762,28 @@ public class StabsParser extends Parser {
 
 	public final TypeNumContext typeNum() throws RecognitionException {
 		TypeNumContext _localctx = new TypeNumContext(_ctx, getState());
-		enterRule(_localctx, 20, RULE_typeNum);
+		enterRule(_localctx, 22, RULE_typeNum);
 		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(93);
+			setState(100);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			if (_la==TypeNumLeftBrace) {
 				{
-				setState(92);
+				setState(99);
 				match(TypeNumLeftBrace);
 				}
 			}
 
-			setState(95);
+			setState(102);
 			match(TypeNumInt);
-			setState(96);
+			setState(103);
 			match(TypeNumComma);
-			setState(97);
+			setState(104);
 			match(TypeNumInt);
-			setState(98);
+			setState(105);
 			match(TypeNumRightBrace);
 			}
 		}
@@ -758,6 +802,9 @@ public class StabsParser extends Parser {
 		public TypeNumContext typeNum() {
 			return getRuleContext(TypeNumContext.class,0);
 		}
+		public NestedFunctionTypeContext nestedFunctionType() {
+			return getRuleContext(NestedFunctionTypeContext.class,0);
+		}
 		public TerminalNode TypeEquals() { return getToken(StabsParser.TypeEquals, 0); }
 		public TypeDescContext typeDesc() {
 			return getRuleContext(TypeDescContext.class,0);
@@ -775,25 +822,32 @@ public class StabsParser extends Parser {
 
 	public final TypeContext type() throws RecognitionException {
 		TypeContext _localctx = new TypeContext(_ctx, getState());
-		enterRule(_localctx, 22, RULE_type);
-		int _la;
+		enterRule(_localctx, 24, RULE_type);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(100);
+			setState(107);
 			typeNum();
-			setState(103);
+			setState(111);
 			_errHandler.sync(this);
-			_la = _input.LA(1);
-			if (_la==TypeEquals) {
+			switch ( getInterpreter().adaptivePredict(_input,4,_ctx) ) {
+			case 1:
 				{
-				setState(101);
+				{
+				setState(108);
 				match(TypeEquals);
-				setState(102);
+				setState(109);
 				typeDesc();
 				}
+				}
+				break;
+			case 2:
+				{
+				setState(110);
+				nestedFunctionType();
+				}
+				break;
 			}
-
 			}
 		}
 		catch (RecognitionException re) {
@@ -818,7 +872,7 @@ public class StabsParser extends Parser {
 		public TerminalNode SymbolDescGlobalFunction() { return getToken(StabsParser.SymbolDescGlobalFunction, 0); }
 		public TerminalNode SymbolDescLocalFunction() { return getToken(StabsParser.SymbolDescLocalFunction, 0); }
 		public TerminalNode SymbolDescGlobalVariable() { return getToken(StabsParser.SymbolDescGlobalVariable, 0); }
-		public TerminalNode SymbolDescRegisterParameter() { return getToken(StabsParser.SymbolDescRegisterParameter, 0); }
+		public TerminalNode SymbolDescRegisterParameterOrFunctionPrototype() { return getToken(StabsParser.SymbolDescRegisterParameterOrFunctionPrototype, 0); }
 		public TerminalNode SymbolDescStackParameter() { return getToken(StabsParser.SymbolDescStackParameter, 0); }
 		public TerminalNode SymbolDescRegisterVariable() { return getToken(StabsParser.SymbolDescRegisterVariable, 0); }
 		public TerminalNode SymbolDescStaticFileVariable() { return getToken(StabsParser.SymbolDescStaticFileVariable, 0); }
@@ -838,18 +892,18 @@ public class StabsParser extends Parser {
 
 	public final SymbolContext symbol() throws RecognitionException {
 		SymbolContext _localctx = new SymbolContext(_ctx, getState());
-		enterRule(_localctx, 24, RULE_symbol);
+		enterRule(_localctx, 26, RULE_symbol);
 		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(105);
+			setState(113);
 			match(SymbolName);
-			setState(106);
+			setState(114);
 			match(SymbolColon);
-			setState(107);
+			setState(115);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << SymbolDescStackVariable) | (1L << SymbolDescReferenceParameter) | (1L << SymbolDescGlobalFunction) | (1L << SymbolDescLocalFunction) | (1L << SymbolDescGlobalVariable) | (1L << SymbolDescRegisterParameter) | (1L << SymbolDescStackParameter) | (1L << SymbolDescRegisterVariable) | (1L << SymbolDescStaticFileVariable) | (1L << SymbolDescTaggedType) | (1L << SymbolDescTypedefedType) | (1L << SymbolDescStaticLocalVariable))) != 0)) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << SymbolDescStackVariable) | (1L << SymbolDescReferenceParameter) | (1L << SymbolDescGlobalFunction) | (1L << SymbolDescLocalFunction) | (1L << SymbolDescGlobalVariable) | (1L << SymbolDescRegisterParameterOrFunctionPrototype) | (1L << SymbolDescStackParameter) | (1L << SymbolDescRegisterVariable) | (1L << SymbolDescStaticFileVariable) | (1L << SymbolDescTaggedType) | (1L << SymbolDescTypedefedType) | (1L << SymbolDescStaticLocalVariable))) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -857,7 +911,7 @@ public class StabsParser extends Parser {
 				_errHandler.reportMatch(this);
 				consume();
 			}
-			setState(108);
+			setState(116);
 			type();
 			}
 		}
@@ -873,32 +927,34 @@ public class StabsParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3/q\4\2\t\2\4\3\t\3"+
-		"\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4\f"+
-		"\t\f\4\r\t\r\4\16\t\16\3\2\3\2\3\2\3\2\3\3\3\3\3\3\3\3\3\3\3\4\3\4\7\4"+
-		"(\n\4\f\4\16\4+\13\4\3\4\3\4\3\5\3\5\3\5\3\6\3\6\3\6\3\7\3\7\3\7\3\7\3"+
-		"\7\3\7\3\7\3\7\3\b\3\b\3\b\3\b\3\b\3\b\3\b\3\b\3\b\3\t\3\t\3\t\7\tI\n"+
-		"\t\f\t\16\tL\13\t\3\t\3\t\3\n\3\n\3\n\3\n\3\n\3\13\3\13\3\13\3\13\3\13"+
-		"\3\13\3\13\3\13\5\13]\n\13\3\f\5\f`\n\f\3\f\3\f\3\f\3\f\3\f\3\r\3\r\3"+
-		"\r\5\rj\n\r\3\16\3\16\3\16\3\16\3\16\3\16\2\2\17\2\4\6\b\n\f\16\20\22"+
-		"\24\26\30\32\2\5\3\2\30\31\3\2+-\3\2\5\20\2n\2\34\3\2\2\2\4 \3\2\2\2\6"+
-		"%\3\2\2\2\b.\3\2\2\2\n\61\3\2\2\2\f\64\3\2\2\2\16<\3\2\2\2\20E\3\2\2\2"+
-		"\22O\3\2\2\2\24\\\3\2\2\2\26_\3\2\2\2\30f\3\2\2\2\32k\3\2\2\2\34\35\7"+
-		"\23\2\2\35\36\5\f\7\2\36\37\5\30\r\2\37\3\3\2\2\2 !\7!\2\2!\"\7\"\2\2"+
-		"\"#\7#\2\2#$\7$\2\2$\5\3\2\2\2%)\7\24\2\2&(\5\4\3\2\'&\3\2\2\2(+\3\2\2"+
-		"\2)\'\3\2\2\2)*\3\2\2\2*,\3\2\2\2+)\3\2\2\2,-\7%\2\2-\7\3\2\2\2./\7\25"+
-		"\2\2/\60\5\30\r\2\60\t\3\2\2\2\61\62\7\26\2\2\62\63\5\30\r\2\63\13\3\2"+
-		"\2\2\64\65\7\27\2\2\65\66\5\30\r\2\66\67\7\33\2\2\678\7\34\2\289\7\33"+
-		"\2\29:\7\34\2\2:;\7\33\2\2;\r\3\2\2\2<=\7&\2\2=>\7\'\2\2>?\5\30\r\2?@"+
-		"\7\35\2\2@A\7)\2\2AB\7(\2\2BC\7)\2\2CD\7*\2\2D\17\3\2\2\2EF\t\2\2\2FJ"+
-		"\7)\2\2GI\5\16\b\2HG\3\2\2\2IL\3\2\2\2JH\3\2\2\2JK\3\2\2\2KM\3\2\2\2L"+
-		"J\3\2\2\2MN\7*\2\2N\21\3\2\2\2OP\7\32\2\2PQ\t\3\2\2QR\7.\2\2RS\7/\2\2"+
-		"S\23\3\2\2\2T]\5\30\r\2U]\5\2\2\2V]\5\6\4\2W]\5\b\5\2X]\5\n\6\2Y]\5\f"+
-		"\7\2Z]\5\20\t\2[]\5\22\n\2\\T\3\2\2\2\\U\3\2\2\2\\V\3\2\2\2\\W\3\2\2\2"+
-		"\\X\3\2\2\2\\Y\3\2\2\2\\Z\3\2\2\2\\[\3\2\2\2]\25\3\2\2\2^`\7\21\2\2_^"+
-		"\3\2\2\2_`\3\2\2\2`a\3\2\2\2ab\7\36\2\2bc\7\37\2\2cd\7\36\2\2de\7 \2\2"+
-		"e\27\3\2\2\2fi\5\26\f\2gh\7\22\2\2hj\5\24\13\2ig\3\2\2\2ij\3\2\2\2j\31"+
-		"\3\2\2\2kl\7\3\2\2lm\7\4\2\2mn\t\4\2\2no\5\30\r\2o\33\3\2\2\2\7)J\\_i";
+		"\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\63y\4\2\t\2\4\3\t"+
+		"\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4"+
+		"\f\t\f\4\r\t\r\4\16\t\16\4\17\t\17\3\2\3\2\3\2\3\2\3\3\3\3\3\3\3\3\3\3"+
+		"\3\4\3\4\7\4*\n\4\f\4\16\4-\13\4\3\4\3\4\3\5\3\5\3\5\3\6\3\6\3\6\3\6\3"+
+		"\6\3\7\3\7\3\7\3\b\3\b\3\b\3\b\3\b\3\b\3\b\3\b\3\t\3\t\3\t\3\t\3\t\3\t"+
+		"\3\t\3\t\3\t\3\n\3\n\3\n\7\nP\n\n\f\n\16\nS\13\n\3\n\3\n\3\13\3\13\3\13"+
+		"\3\13\3\13\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\5\fd\n\f\3\r\5\rg\n\r\3\r\3"+
+		"\r\3\r\3\r\3\r\3\16\3\16\3\16\3\16\5\16r\n\16\3\17\3\17\3\17\3\17\3\17"+
+		"\3\17\2\2\20\2\4\6\b\n\f\16\20\22\24\26\30\32\34\2\5\3\2\30\31\3\2+-\3"+
+		"\2\5\20\2v\2\36\3\2\2\2\4\"\3\2\2\2\6\'\3\2\2\2\b\60\3\2\2\2\n\63\3\2"+
+		"\2\2\f8\3\2\2\2\16;\3\2\2\2\20C\3\2\2\2\22L\3\2\2\2\24V\3\2\2\2\26c\3"+
+		"\2\2\2\30f\3\2\2\2\32m\3\2\2\2\34s\3\2\2\2\36\37\7\23\2\2\37 \5\16\b\2"+
+		" !\5\32\16\2!\3\3\2\2\2\"#\7!\2\2#$\7\"\2\2$%\7#\2\2%&\7$\2\2&\5\3\2\2"+
+		"\2\'+\7\24\2\2(*\5\4\3\2)(\3\2\2\2*-\3\2\2\2+)\3\2\2\2+,\3\2\2\2,.\3\2"+
+		"\2\2-+\3\2\2\2./\7%\2\2/\7\3\2\2\2\60\61\7\25\2\2\61\62\5\32\16\2\62\t"+
+		"\3\2\2\2\63\64\7\35\2\2\64\65\7\61\2\2\65\66\7\63\2\2\66\67\7\62\2\2\67"+
+		"\13\3\2\2\289\7\26\2\29:\5\32\16\2:\r\3\2\2\2;<\7\27\2\2<=\5\32\16\2="+
+		">\7\33\2\2>?\7\34\2\2?@\7\33\2\2@A\7\34\2\2AB\7\33\2\2B\17\3\2\2\2CD\7"+
+		"&\2\2DE\7\'\2\2EF\5\32\16\2FG\7\35\2\2GH\7\60\2\2HI\7(\2\2IJ\7)\2\2JK"+
+		"\7*\2\2K\21\3\2\2\2LM\t\2\2\2MQ\7)\2\2NP\5\20\t\2ON\3\2\2\2PS\3\2\2\2"+
+		"QO\3\2\2\2QR\3\2\2\2RT\3\2\2\2SQ\3\2\2\2TU\7*\2\2U\23\3\2\2\2VW\7\32\2"+
+		"\2WX\t\3\2\2XY\7.\2\2YZ\7/\2\2Z\25\3\2\2\2[d\5\32\16\2\\d\5\2\2\2]d\5"+
+		"\6\4\2^d\5\b\5\2_d\5\f\7\2`d\5\16\b\2ad\5\22\n\2bd\5\24\13\2c[\3\2\2\2"+
+		"c\\\3\2\2\2c]\3\2\2\2c^\3\2\2\2c_\3\2\2\2c`\3\2\2\2ca\3\2\2\2cb\3\2\2"+
+		"\2d\27\3\2\2\2eg\7\21\2\2fe\3\2\2\2fg\3\2\2\2gh\3\2\2\2hi\7\36\2\2ij\7"+
+		"\37\2\2jk\7\36\2\2kl\7 \2\2l\31\3\2\2\2mq\5\30\r\2no\7\22\2\2or\5\26\f"+
+		"\2pr\5\n\6\2qn\3\2\2\2qp\3\2\2\2qr\3\2\2\2r\33\3\2\2\2st\7\3\2\2tu\7\4"+
+		"\2\2uv\t\4\2\2vw\5\32\16\2w\35\3\2\2\2\7+Qcfq";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {
