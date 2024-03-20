@@ -953,7 +953,7 @@ public class StabsScript extends GhidraScript {
                     break;
 
                 case StabSymbolTypes.N_SO:
-                    if (str.isEmpty()) {
+                    if (str.isEmpty() && sourceFilename != null) {
                         importStabs();
                         clearStabs();
                         sourceDirectory = null;
