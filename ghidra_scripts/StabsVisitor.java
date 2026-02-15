@@ -1,318 +1,607 @@
 import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 
-import ghidra.program.model.data.*;
-import stabs.StabsParser.*;
+import ghidra.program.model.address.Address;
 import stabs.StabsParserBaseVisitor;
+import stabs.StabsParser.*;
 
 @SuppressWarnings("unchecked")
 public class StabsVisitor extends StabsParserBaseVisitor<Object> {
-    private static final DataType BAD = BadDataType.dataType;
-    private static final DataType CHAR = CharDataType.dataType;
-    private static final DataType DOUBLE = DoubleDataType.dataType;
-    private static final DataType DOUBLECOMPLEX = DoubleComplexDataType.dataType;
-    private static final DataType FLOAT = FloatDataType.dataType;
-    private static final DataType FLOATCOMPLEX = FloatComplexDataType.dataType;
-    private static final DataType INT = IntegerDataType.dataType;
-    private static final DataType LONGDOUBLE = LongDoubleDataType.dataType;
-    private static final DataType LONGDOUBLECOMPLEX = LongDoubleComplexDataType.dataType;
-    private static final DataType LONGLONG = LongLongDataType.dataType;
-    private static final DataType SCHAR = SignedCharDataType.dataType;
-    private static final DataType SHORT = ShortDataType.dataType;
-    private static final DataType UCHAR = UnsignedCharDataType.dataType;
-    private static final DataType UINT = UnsignedIntegerDataType.dataType;
-    private static final DataType ULONGLONG = UnsignedLongLongDataType.dataType;
-    private static final DataType UNDEF = Undefined4DataType.dataType;
-    private static final DataType USHORT = UnsignedShortDataType.dataType;
-    private static final DataType VOID = VoidDataType.dataType;
-
-    private static final int SIZEOF_INT = INT.getLength();
-    private static final int SIZEOF_LONGLONG = LONGLONG.getLength();
-
     private StabsScript script;
+    private Integer symbolTypeValue;
+    private Address symbolAddress;
+    private Integer symbolValue;
+    private Boolean is64bit;
 
-    public StabsVisitor(StabsScript script) {
+    public StabsVisitor(StabsScript script, Integer symbolTypeValue, Address symbolAddress, int symbolValue, boolean is64bit) {
         this.script = script;
+        this.symbolTypeValue = symbolTypeValue;
+        this.symbolAddress = symbolAddress;
+        this.symbolValue = symbolValue;
+        this.is64bit = is64bit;
     }
 
     @Override
-    public DataType visitArrayType(ArrayTypeContext ctx) {
-        DataType rangeType = (DataType) visit(ctx.rangeType());
-        DataType memberType = (DataType) visit(ctx.type());
+    public StabsScript.ArrayType visitTypeDescriptionArray(TypeDescriptionArrayContext ctx) {
+        StabsScript.ArrayType arrayType = new StabsScript.ArrayType();
 
-        if (rangeType instanceof PointerDataType) {
-            return PointerDataType.getPointer(memberType, SIZEOF_INT);
+        arrayType.indexType = (StabsScript.RangeType) visit(ctx.typeDescriptionRange());
+        arrayType.indexType.isArray = true;
+        arrayType.type = (StabsScript.Type) visit(ctx.type());
+
+        return arrayType;
+    }
+
+    @Override
+    public StabsScript.AttributeType visitTypeDescriptionAttribute(TypeDescriptionAttributeContext ctx) {
+        StabsScript.AttributeType attributeType = null;
+
+        if (ctx.attributeBoundary() != null) {
+            StabsScript.AttributeBoundaryType attributeBoundaryType = new StabsScript.AttributeBoundaryType();
+            attributeBoundaryType.boundary = Integer.parseInt(ctx.attributeBoundary().integer().getText());
+
+            attributeType = attributeBoundaryType;
+        } else if (ctx.attributePacked() != null) {
+            attributeType = new StabsScript.AttributePackedType();
+        } else if (ctx.attributePointer() != null) {
+            StabsScript.AttributePointerType attributePointerType = new StabsScript.AttributePointerType();
+            attributePointerType.size = Integer.parseInt(ctx.attributePointer().integer().getText());
+            
+            attributeType = attributePointerType;
+        } else if (ctx.attributeSize() != null) {
+            StabsScript.AttributeSizeType attributeSizeType = new StabsScript.AttributeSizeType();
+            attributeSizeType.size = Integer.parseInt(ctx.attributeSize().number().getText());
+
+            attributeType = attributeSizeType;
+        } else if (ctx.attributeString() != null) {
+            attributeType = new StabsScript.AttributeStringType();
+        } else if (ctx.attributeVector() != null) {
+            attributeType = new StabsScript.AttributeVectorType();
         }
 
-        int numElements = ((ArrayDataType) rangeType).getNumElements();
-        return new ArrayDataType(memberType, numElements, memberType.getLength());
+        switch (Integer.parseInt(ctx.number().getText())) {
+            case 1:
+            case 4:
+            case 15:
+            case 29:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Int32;
+                break;
+            case 2:
+            case 27:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Char;
+                break;
+            case 3:
+            case 28:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Short;
+                break;
+            case 5:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.UnsignedChar;
+                break;
+            case 6:
+            case 20:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Char;
+                break;
+            case 7:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.UnsignedShort;
+                break;
+            case 8:
+            case 9:
+            case 10:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.UnsignedInt32;
+                break;
+            case 11:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Void;
+                break;
+            case 12:
+            case 17:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Float;
+                break;
+            case 13:
+            case 14:
+            case 18:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Double;
+                break;
+            case 16:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Boolean32;
+                break;
+            case 19:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.String;
+                break;
+            case 21:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Boolean8;
+                break;
+            case 22:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Boolean16;
+                break;
+            case 23:
+            case 24:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Boolean32;
+                break;
+            case 25:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Complex;
+                break;
+            case 26:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.DoubleComplex;
+                break;
+            case 30:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.WChar;
+                break;
+            case 31:
+            case 34:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Int64;
+                break;
+            case 32:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.UnsignedInt64;
+                break;
+            case 33:
+                attributeType.builtinType = StabsScript.AttributeType.BuiltinType.Boolean64;
+                break;
+            default:
+                break;
+        }
+
+        return attributeType;
+    }
+
+    @Override
+    public StabsScript.ClassMethodType visitTypeDescriptionClassMethod(TypeDescriptionClassMethodContext ctx) {
+        StabsScript.ClassMethodType classMethodType = new StabsScript.ClassMethodType();
+
+        classMethodType.mangledSignature = ctx.classMethodMangledSignature() != null;
+        classMethodType.signature = new ArrayList<>();
+
+        boolean returnType = true;
+
+        for (TypeContext typeContext : ctx.type()) {
+            if (returnType) {
+                classMethodType.type = (StabsScript.Type) visit(typeContext);
+                returnType = false;
+                continue;
+            }
+
+            classMethodType.signature.add((StabsScript.Type) visit(typeContext));
+        }
+
+        return classMethodType;
+    }
+
+    @Override
+    public StabsScript.EnumType visitTypeDescriptionEnum(TypeDescriptionEnumContext ctx) {
+        StabsScript.EnumType enumType = new StabsScript.EnumType();
+
+        enumType.members = new ArrayList<>();
+
+        for (EnumMemberContext memberContext : ctx.enumMember()) {
+            enumType.members.add((Pair<String, Integer>) visit(memberContext));
+        }
+
+        return enumType;
     }
 
     @Override
     public Pair<String, Integer> visitEnumMember(EnumMemberContext ctx) {
-        String key = ctx.EnumIdentifier().getText();
-        int value = Integer.parseInt(ctx.EnumInt().getText());
+        String key = ctx.identifier().getText();
+        Integer value = Integer.parseInt(ctx.integer().getText());
 
         return Pair.of(key, value);
     }
 
     @Override
-    public DataType visitEnumType(EnumTypeContext ctx) {
-        List<Pair<String, Integer>> pairs = new ArrayList<>();
-        for (EnumMemberContext member : ctx.enumMember()) {
-            pairs.add((Pair<String, Integer>) visit(member));
-        }
+    public StabsScript.FunctionType visitTypeDescriptionFunction(TypeDescriptionFunctionContext ctx) {
+        StabsScript.FunctionType functionType = new StabsScript.FunctionType();
 
-        EnumDataType enumType = new EnumDataType(script.getCurrentPath(), script.makeEnumName(), SIZEOF_INT);
-        for (Pair<String, Integer> pair : pairs) {
-            enumType.add(pair.getLeft(), pair.getRight());
-        }
-        return enumType;
+        functionType.type = (StabsScript.Type) visit(ctx.type());
+
+        return functionType;
     }
 
     @Override
-    public DataType visitFunctionType(FunctionTypeContext ctx) {
-        DataType returnType = (DataType) visit(ctx.type());
+    public StabsScript.NestedFunctionType visitTypeDescriptionNestedFunction(TypeDescriptionNestedFunctionContext ctx) {
+        StabsScript.NestedFunctionType nestedFunctionType = new StabsScript.NestedFunctionType();
 
-        FunctionDefinitionDataType funcType = new FunctionDefinitionDataType(script.getCurrentPath(), script.makeFuncName());
-        funcType.setReturnType(returnType);
-        return funcType;
+        nestedFunctionType.name = ctx.identifier(0).getText();
+        nestedFunctionType.parentName = ctx.identifier(1).getText();
+
+        return nestedFunctionType;
     }
 
     @Override
-    public DataType visitPointerType(PointerTypeContext ctx) {
-        DataType dataType = (DataType) visit(ctx.type());
+    public StabsScript.PointerType visitTypeDescriptionPointer(TypeDescriptionPointerContext ctx) {
+        StabsScript.PointerType pointerType = new StabsScript.PointerType();
+        
+        pointerType.type = (StabsScript.Type) visit(ctx.type());
 
-        return PointerDataType.getPointer(dataType, SIZEOF_INT);
+        return pointerType;
     }
 
     @Override
-    public DataType visitRangeType(RangeTypeContext ctx) {
-        DataType dataType = (DataType) visit(ctx.type());
-        DataType baseType = null;
-        if (dataType instanceof TypedefDataType) {
-            baseType = ((TypedefDataType) dataType).getBaseDataType();
-        }
-        String min = ctx.RangeInt(0).getText();
-        String max = ctx.RangeInt(1).getText();
-        DataTypeManager dtm = script.getCurrentProgram().getDataTypeManager();
+    public StabsScript.RangeType visitTypeDescriptionRange(TypeDescriptionRangeContext ctx) {
+        StabsScript.RangeType rangeType = new StabsScript.RangeType();
+        
+        rangeType.type = (StabsScript.Type) visit(ctx.type());
 
-        if (dataType == UNDEF && min.equals("0020000000000") && max.equals("0017777777777")) {
-            return INT;
-        } else if (dataType == UNDEF && min.equals("0") && max.equals("127")) {
-            return CHAR;
-        } else if (baseType instanceof IntegerDataType && min.equals("0020000000000") && max.equals("0017777777777")) {
-            return INT;
-        } else if (baseType instanceof IntegerDataType && min.equals("0000000000000") && max.equals("0037777777777")) {
-            return UINT;
-        } else if (baseType instanceof IntegerDataType && min.equals("01000000000000000000000") && max.equals("0777777777777777777777")) {
-            return LONGLONG;
-        } else if (baseType instanceof IntegerDataType && min.equals("0000000000000") && max.equals("01777777777777777777777")) {
-            return ULONGLONG;
-        } else if (dataType == UNDEF && min.equals("-32768") && max.equals("32767")) {
-            return SHORT;
-        } else if (dataType == UNDEF && min.equals("0") && max.equals("65535")) {
-            return USHORT;
-        } else if (dataType == UNDEF && min.equals("-128") && max.equals("127")) {
-            return SCHAR;
-        } else if (dataType == UNDEF && min.equals("0") && max.equals("255")) {
-            return UCHAR;
-        } else if (baseType instanceof IntegerDataType && min.equals("4") && max.equals("0")) {
-            return FLOAT;
-        } else if (baseType instanceof IntegerDataType && min.equals("8") && max.equals("0")) {
-            return DOUBLE;
-        } else if (baseType instanceof IntegerDataType && min.equals("12") && max.equals("0")) {
-            return AbstractFloatDataType.getFloatDataType(12, dtm);
-        } else if (baseType instanceof IntegerDataType && min.equals("16") && max.equals("0")) {
-            return LONGDOUBLE;
-        } else if (dataType == UNDEF && min.equals("4") && max.equals("0")) {
-            return FLOATCOMPLEX;
-        } else if (dataType == UNDEF && min.equals("8") && max.equals("0")) {
-            return DOUBLECOMPLEX;
-        } else if (dataType == UNDEF && min.equals("12") && max.equals("0")) {
-            return AbstractComplexDataType.getComplexDataType(12, dtm);
-        } else if (dataType == UNDEF && min.equals("16") && max.equals("0")) {
-            return LONGDOUBLECOMPLEX;
-        }
+        String minValue = ctx.integer(0).getText();
+        String maxValue = ctx.integer(1).getText();
 
-        int rangeMin = Integer.parseInt(min);
-        int rangeMax = Integer.parseInt(max);
+        if (minValue.length() > 1 && minValue.charAt(0) == '0') {
+            rangeType.minValue = Long.parseUnsignedLong(minValue, 8);
+        } else {
+            rangeType.minValue = Long.parseLong(minValue);
 
-        if (rangeMin != 0) {
-            throw new RuntimeException("Unknown primitive type");
-        }
-        if (rangeMax == -1) {
-            return PointerDataType.getPointer(INT, SIZEOF_INT);  // Implicitly sized array -> decays to pointer
-        }
+            if (rangeType.minValue == -1L && !is64bit) {
+                rangeType.minValue = 0xffffffffL;
+            } else if (rangeType.minValue <= -128) {
+                int valueByteSize = (64 - Long.numberOfLeadingZeros(~rangeType.minValue) + 7) / 8;
 
-        int numElements = rangeMax - rangeMin + 1;
-        return new ArrayDataType(INT, numElements, SIZEOF_INT);
-    }
-
-    @Override
-    public Triple<DataType, String, Pair<Integer, Integer>> visitStructMember(StructMemberContext ctx) {
-        String memberName = ctx.StructIdentifier().getText();
-        DataType memberType = (DataType) visit(ctx.type());
-        int memberOffset = Integer.parseInt(ctx.StructInt(0).getText()) / 8;
-        int memberSize = Integer.parseInt(ctx.StructInt(1).getText()) / 8;
-
-        return Triple.of(memberType, memberName, Pair.of(memberOffset, memberSize));
-    }
-
-    private DataType visitUnionType(StructTypeContext ctx) {
-        int unionSize = Integer.parseInt(ctx.StructInt().getText());
-        List<Triple<DataType, String, Pair<Integer, Integer>>> triples = new ArrayList<>();
-        for (StructMemberContext member : ctx.structMember()) {
-            triples.add((Triple<DataType, String, Pair<Integer, Integer>>) visit(member));
-        }
-
-        UnionDataType unionType = new UnionDataType(script.getCurrentPath(), script.makeUnionName());
-        for (Triple<DataType, String, Pair<Integer, Integer>> triple : triples) {
-            DataType memberDataType = triple.getLeft();
-            String memberName = triple.getMiddle();
-            int memberOffset = triple.getRight().getLeft();
-            int memberSize = triple.getRight().getRight();
-
-            unionType.add(memberDataType, memberName, null);
-            DataTypeComponent component = unionType.getComponent(unionType.getNumComponents() - 1);
-            if (component.getOffset() != memberOffset) {
-                throw new RuntimeException("Union member offset mismatch");
-            }
-            if (component.getLength() != memberSize) {
-                throw new RuntimeException("Union member size mismatch");
+                if (valueByteSize <= 1) {
+                    rangeType.minValue &= 0xffL;
+                } else if (valueByteSize <= 2) {
+                    rangeType.minValue &= 0xffffL;
+                } else if (valueByteSize <= 4) {
+                    rangeType.minValue &= 0xffffffffL;
+                }
             }
         }
-        if (unionType.getLength() != unionSize) {
-            throw new RuntimeException("Union size mismatch");
-        }
-        return unionType;
-    }
 
-    @Override
-    public DataType visitStructType(StructTypeContext ctx) {
-        if (ctx.TypeDescUnion() != null) {
-            return visitUnionType(ctx);
-        }
+        if (maxValue.length() > 1 && maxValue.charAt(0) == '0') {
+            rangeType.maxValue = Long.parseUnsignedLong(maxValue, 8);
+        } else {
+            rangeType.maxValue = Long.parseLong(maxValue);
 
-        int structSize = Integer.parseInt(ctx.StructInt().getText());
-        List<Triple<DataType, String, Pair<Integer, Integer>>> triples = new ArrayList<>();
-        for (StructMemberContext member : ctx.structMember()) {
-            triples.add((Triple<DataType, String, Pair<Integer, Integer>>) visit(member));
-        }
+            if (rangeType.maxValue == -1L && !is64bit) {
+                rangeType.maxValue = 0xffffffffL;
+            } else if (rangeType.maxValue <= -128) {
+                int valueByteSize = (64 - Long.numberOfLeadingZeros(~rangeType.maxValue) + 7) / 8;
 
-        StructureDataType structType = new StructureDataType(script.getCurrentPath(), script.makeStructName(), 0);
-        for (Triple<DataType, String, Pair<Integer, Integer>> triple : triples) {
-            DataType memberDataType = triple.getLeft();
-            String memberName = triple.getMiddle();
-            int memberOffset = triple.getRight().getLeft();
-            int memberSize = triple.getRight().getRight();
-
-            structType.insertAtOffset(memberOffset, memberDataType, memberSize, memberName, null);
-            DataTypeComponent component = structType.getComponent(structType.getNumComponents() - 1);
-            if (component.getOffset() != memberOffset) {
-                throw new RuntimeException("Struct member offset mismatch");
-            }
-            if (component.getLength() != memberSize) {
-                throw new RuntimeException("Struct member size mismatch");
+                if (valueByteSize <= 1) {
+                    rangeType.maxValue &= 0xffL;
+                } else if (valueByteSize <= 2) {
+                    rangeType.maxValue &= 0xffffL;
+                } else if (valueByteSize <= 4) {
+                    rangeType.maxValue &= 0xffffffffL;
+                }
             }
         }
-        if (structType.getLength() < structSize) {
-            structType.setExplicitMinimumAlignment(SIZEOF_INT);
-            structType.setExplicitPackingValue(SIZEOF_INT);
-        }
-        if (structType.getLength() < structSize) {
-            structType.setExplicitMinimumAlignment(SIZEOF_LONGLONG);
-            structType.setExplicitPackingValue(SIZEOF_LONGLONG);
-        }
-        if (structType.getLength() != structSize) {
-            throw new RuntimeException("Struct size mismatch");
-        }
-        return structType;
+
+        rangeType.isArray = false;
+
+        return rangeType;
     }
 
     @Override
-    public DataType visitXrefType(XrefTypeContext ctx) {
-        String xrefName = ctx.XrefIdentifier().getText();
+    public StabsScript.ReferenceType visitTypeDescriptionReference(TypeDescriptionReferenceContext ctx) {
+        StabsScript.ReferenceType referenceType = new StabsScript.ReferenceType();
+        
+        referenceType.type = (StabsScript.Type) visit(ctx.type());
 
-        if (ctx.XrefDescEnum() != null) {
-            return new EnumDataType(script.getCurrentPath(), "enum " + xrefName, SIZEOF_INT);
-        }
-        if (ctx.XrefDescUnion() != null) {
-            return new UnionDataType(script.getCurrentPath(), "union " + xrefName);
-        }
-        return new StructureDataType(script.getCurrentPath(), "struct " + xrefName, 0);
+        return referenceType;
     }
 
     @Override
-    public DataType visitTypeDesc(TypeDescContext ctx) {
-        return (DataType) visit(ctx.getChild(0));
+    public StabsScript.StructUnionClassType visitTypeDescriptionStructUnionClass(TypeDescriptionStructUnionClassContext ctx) {
+        StabsScript.StructUnionClassType structUnionClassType = new StabsScript.StructUnionClassType();
+
+        boolean isClass = ctx.classInheritanceInfo() != null || ctx.classVirtualInfo() != null;
+
+        if (!isClass) {
+            for (StructUnionClassMemberContext member : ctx.structUnionClassMember()) {
+                if (
+                    (member.structUnionClassMemberField() != null && member.structUnionClassMemberField().classAccessibility() != null)
+                    || member.classMemberMethod() != null
+                    || member.classMemberVirtualTable() != null
+                ) {
+                    isClass = true;
+                    break;
+                }
+            }
+        }
+
+        switch (ctx.structUnionType().getText()) {
+            case "s":
+                structUnionClassType.specificType = isClass
+                    ? StabsScript.StructUnionClassType.StructUnionClassSpecificType.Class
+                    : StabsScript.StructUnionClassType.StructUnionClassSpecificType.Struct;
+                break;
+            case "u":
+                structUnionClassType.specificType = isClass
+                    ? StabsScript.StructUnionClassType.StructUnionClassSpecificType.UnionClass
+                    : StabsScript.StructUnionClassType.StructUnionClassSpecificType.Union;
+                break;
+            default:
+                break;
+        }
+
+        structUnionClassType.size = Integer.parseInt(ctx.number().getText());
+
+        if (ctx.classInheritanceInfo() != null) {
+            structUnionClassType.inheritanceInfo = new ArrayList<>();
+
+            for (ClassInheritanceDataContext inheritanceData : ctx.classInheritanceInfo().classInheritanceData()) {
+                structUnionClassType.inheritanceInfo.add((StabsScript.ClassInheritanceDataType) visit(inheritanceData));
+            }
+        }
+
+        structUnionClassType.members = new ArrayList<>();
+
+        for (StructUnionClassMemberContext member : ctx.structUnionClassMember()) {
+            structUnionClassType.members.add((StabsScript.StructUnionClassMemberType) visit(member));
+        }
+
+        return structUnionClassType;
     }
 
     @Override
-    public Pair<Integer, Integer> visitTypeNum(TypeNumContext ctx) {
-        int i = Integer.parseInt(ctx.TypeNumInt(0).getText());
-        int j = Integer.parseInt(ctx.TypeNumInt(1).getText());
+    public StabsScript.StructUnionClassMemberType visitStructUnionClassMember(StructUnionClassMemberContext ctx) {
+        StabsScript.StructUnionClassMemberType structUnionClassMemberType = null;
+
+        if (ctx.structUnionClassMemberField() != null) {
+            structUnionClassMemberType = (StabsScript.StructUnionClassMemberFieldType) visit(ctx.structUnionClassMemberField());
+        } else if (ctx.classMemberMethod() != null) {
+            structUnionClassMemberType = (StabsScript.ClassMemberMethodType) visit(ctx.classMemberMethod());
+        } else if (ctx.classMemberStaticField() != null) {
+            structUnionClassMemberType = (StabsScript.ClassMemberStaticFieldType) visit(ctx.classMemberStaticField());
+        } else if (ctx.classMemberVirtualTable() != null) {
+            structUnionClassMemberType = (StabsScript.ClassMemberVirtualTableType) visit(ctx.classMemberVirtualTable());
+        }
+
+        structUnionClassMemberType.name = ctx.identifier().getText();
+
+        return structUnionClassMemberType;
+    }
+
+    @Override
+    public StabsScript.StructUnionClassMemberFieldType visitStructUnionClassMemberField(StructUnionClassMemberFieldContext ctx) {
+        StabsScript.StructUnionClassMemberFieldType structUnionClassMemberFieldType = new StabsScript.StructUnionClassMemberFieldType();
+
+        structUnionClassMemberFieldType.accessibility = StabsScript.ClassAccessibility.Undefined;
+
+        if (ctx.classAccessibility() != null) {
+            switch (ctx.classAccessibility().getText()) {
+                case "0":
+                    structUnionClassMemberFieldType.accessibility = StabsScript.ClassAccessibility.Private;
+                    break;
+                case "1":
+                    structUnionClassMemberFieldType.accessibility = StabsScript.ClassAccessibility.Protected;
+                    break;
+                case "2":
+                    structUnionClassMemberFieldType.accessibility = StabsScript.ClassAccessibility.Public;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        structUnionClassMemberFieldType.type = (StabsScript.Type) visitType(ctx.type());
+        structUnionClassMemberFieldType.offset = Integer.parseInt(ctx.number(0).getText()) / 8;
+        structUnionClassMemberFieldType.size = Integer.parseInt(ctx.number(1).getText()) / 8;
+
+        return structUnionClassMemberFieldType;
+    }
+
+    @Override
+    public StabsScript.ClassMemberMethodType visitClassMemberMethod(ClassMemberMethodContext ctx) {
+        StabsScript.ClassMemberMethodType classMemberMethodType = new StabsScript.ClassMemberMethodType();
+
+        classMemberMethodType.overloads = new ArrayList<>();
+
+        for (ClassMemberMethodOverloadContext overload : ctx.classMemberMethodOverload()) {
+            classMemberMethodType.overloads.add((StabsScript.ClassMemberMethodOverloadType) visit(overload));
+        }
+
+        return classMemberMethodType;
+    }
+
+    @Override
+    public StabsScript.ClassMemberMethodOverloadType visitClassMemberMethodOverload(ClassMemberMethodOverloadContext ctx) {
+        StabsScript.ClassMemberMethodOverloadType classMemberMethodOverloadType = new StabsScript.ClassMemberMethodOverloadType();
+
+        classMemberMethodOverloadType.type = (StabsScript.Type) visit(ctx.type());
+        
+        if (ctx.identifier() != null) {
+            classMemberMethodOverloadType.mangledSignature = ctx.identifier().getText();
+        }
+
+        switch (ctx.classMemberMethodInfo().classAccessibility().getText()) {
+            case "0":
+                classMemberMethodOverloadType.accessibility = StabsScript.ClassAccessibility.Private;
+                break;
+            case "1":
+                classMemberMethodOverloadType.accessibility = StabsScript.ClassAccessibility.Protected;
+                break;
+            case "2":
+                classMemberMethodOverloadType.accessibility = StabsScript.ClassAccessibility.Public;
+                break;
+            default:
+                break;
+        }
+
+        switch (ctx.classMemberMethodInfo().classMemberMethodModifier().getText()) {
+            case "A":
+                classMemberMethodOverloadType.modifier = StabsScript.ClassMemberMethodOverloadType.MethodModifier.Normal;
+                break;
+            case "B":
+                classMemberMethodOverloadType.modifier = StabsScript.ClassMemberMethodOverloadType.MethodModifier.Const;
+                break;
+            case "C":
+                classMemberMethodOverloadType.modifier = StabsScript.ClassMemberMethodOverloadType.MethodModifier.Volatile;
+                break;
+            case "D":
+                classMemberMethodOverloadType.modifier = StabsScript.ClassMemberMethodOverloadType.MethodModifier.ConstVolatile;
+                break;
+            default:
+                break;
+        }
+
+        if (ctx.classMemberMethodInfo().classMemberMethodStatic() != null) {
+            classMemberMethodOverloadType.isStatic = true;
+        }
+
+        if (ctx.classMemberMethodInfo().classMemberMethodVirtualInfo() != null) {
+            classMemberMethodOverloadType.isVirtual = true;
+            classMemberMethodOverloadType.vTableIndex = Integer.parseInt(ctx.classMemberMethodInfo().classMemberMethodVirtualInfo().integer().getText()) & 0x7fffffff; // set the higher bit to zero
+            classMemberMethodOverloadType.baseClassType = (StabsScript.Type) visit(ctx.classMemberMethodInfo().classMemberMethodVirtualInfo().type());
+        }
+
+        return classMemberMethodOverloadType;
+    }
+
+    @Override
+    public StabsScript.ClassMemberStaticFieldType visitClassMemberStaticField(ClassMemberStaticFieldContext ctx) {
+        StabsScript.ClassMemberStaticFieldType classMemberStaticFieldType = new StabsScript.ClassMemberStaticFieldType();
+
+        classMemberStaticFieldType.accessibility = StabsScript.ClassAccessibility.Private;
+
+        if (ctx.classAccessibility() != null) {
+            switch (ctx.classAccessibility().getText()) {
+                case "0":
+                    classMemberStaticFieldType.accessibility = StabsScript.ClassAccessibility.Private;
+                    break;
+                case "1":
+                    classMemberStaticFieldType.accessibility = StabsScript.ClassAccessibility.Protected;
+                    break;
+                case "2":
+                    classMemberStaticFieldType.accessibility = StabsScript.ClassAccessibility.Public;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        classMemberStaticFieldType.type = (StabsScript.Type) visit(ctx.type());
+        classMemberStaticFieldType.mangledName = ctx.identifier().getText();
+
+        return classMemberStaticFieldType;
+    }
+
+    @Override
+    public StabsScript.ClassMemberVirtualTableType visitClassMemberVirtualTable(ClassMemberVirtualTableContext ctx) {
+        StabsScript.ClassMemberVirtualTableType classMemberVirtualTableType = new StabsScript.ClassMemberVirtualTableType();
+
+        classMemberVirtualTableType.classType = (StabsScript.Type) visit(ctx.type(0));
+        classMemberVirtualTableType.type = (StabsScript.Type) visit(ctx.type(1));
+
+        classMemberVirtualTableType.offset = Integer.parseInt(ctx.integer().getText()) / 8;
+
+        return classMemberVirtualTableType;
+    }
+
+    @Override
+    public StabsScript.XrefType visitTypeDescriptionXref(TypeDescriptionXrefContext ctx) {
+        StabsScript.XrefType xrefType = new StabsScript.XrefType();
+
+        xrefType.targetType = StabsScript.XrefType.TargetType.Undefined;
+
+        switch (ctx.xrefType().getText()) {
+            case "e":
+                xrefType.targetType = StabsScript.XrefType.TargetType.Enum;
+                break;
+            case "s":
+                xrefType.targetType = StabsScript.XrefType.TargetType.Struct;
+                break;
+            case "u":
+                xrefType.targetType = StabsScript.XrefType.TargetType.Union;
+                break;
+            default:
+                break;
+        }
+
+        xrefType.targetName = ctx.identifier().getText();
+
+        return xrefType;
+    }
+
+    @Override
+    public StabsScript.Type visitTypeDescription(TypeDescriptionContext ctx) {
+        StabsScript.Type typeDescription = (StabsScript.Type) visit(ctx.getChild(1));
+
+        return typeDescription;
+    }
+
+    @Override
+    public Pair<Integer, Integer> visitTypeID(TypeIDContext ctx) {
+        int i = 0;
+        int j = 0;
+
+        if (ctx.simpleTypeID() != null) {
+            i = -1;
+            j = Integer.parseInt(ctx.simpleTypeID().getText());
+        } else if (ctx.compositeTypeID() != null) {
+            i = Integer.parseInt(ctx.compositeTypeID().number(0).getText());
+            j = Integer.parseInt(ctx.compositeTypeID().number(1).getText());
+        }
 
         return Pair.of(i, j);
     }
 
     @Override
-    public DataType visitType(TypeContext ctx) {
-        Pair<Integer, Integer> number = (Pair<Integer, Integer>) visit(ctx.typeNum());
+    public StabsScript.Type visitType(TypeContext ctx) {
+        Pair<Integer, Integer> internalId = (Pair<Integer, Integer>) visit(ctx.typeID());
 
-        if (ctx.typeDesc() == null) {
-            DataType dataType = script.getType(number);
-            if (dataType == null) {
-                dataType = UNDEF;  // Recursive range -> primitive type
+        StabsScript.Type type = null;
+
+        if (ctx.typeDescription() != null) {
+            type = (StabsScript.Type) visit(ctx.typeDescription());
+
+            if (type.id != null) {
+                StabsScript.Type typeDescription = new StabsScript.Type();
+                typeDescription.type = type;
+                type = typeDescription;
             }
-            return dataType;
+
+            type.id = script.getId(internalId);
+
+            script.putType(type);
+        } else {
+            type = new StabsScript.Type();
+            type.id = script.getId(internalId);
         }
 
-        DataType dataType = (DataType) visit(ctx.typeDesc());
-        if (dataType == UNDEF) {
-            dataType = VOID;  // Recursive typedef -> void type
-        } else if (dataType == null) {
-            dataType = BAD;  // Parsing error -> bad type
-        }
-
-        script.putType(number, dataType);
-        return dataType;
+        return type;
     }
 
     @Override
-    public DataType visitSymbol(SymbolContext ctx) {
-        String name = ctx.SymbolName().getText();
-        Pair<Integer, Integer> number = (Pair<Integer, Integer>) visit(ctx.type().typeNum());
-        DataType dataType = (DataType) visit(ctx.type());
+    public StabsScript.Symbol visitSymbol(SymbolContext ctx) {
+        StabsScript.Symbol symbol = new StabsScript.Symbol();
 
-        if (ctx.SymbolDescStackVariable() != null) {
-            script.recordStackVariable(dataType, name);
-        } else if (ctx.SymbolDescReferenceParameter() != null) {
-            script.recordReferenceParameter(dataType, name);
-        } else if (ctx.SymbolDescGlobalFunction() != null) {
-            script.recordFunction(dataType, name);
-        } else if (ctx.SymbolDescLocalFunction() != null) {
-            script.recordFunction(dataType, name);
-        } else if (ctx.SymbolDescGlobalVariable() != null) {
-            script.recordHeapVariable(dataType, name);
-        } else if (ctx.SymbolDescRegisterParameter() != null) {
-            script.recordRegisterParameter(dataType, name);
-        } else if (ctx.SymbolDescStackParameter() != null) {
-            script.recordStackParameter(dataType, name);
-        } else if (ctx.SymbolDescRegisterVariable() != null) {
-            script.recordRegisterVariable(dataType, name);
-        } else if (ctx.SymbolDescStaticFileVariable() != null) {
-            script.recordHeapVariable(dataType, name);
-        } else if (ctx.SymbolDescTaggedType() != null) {
-            script.recordTaggedType(number, name);
-        } else if (ctx.SymbolDescTypedefedType() != null) {
-            script.recordTypedefedType(number, name);
-        } else if (ctx.SymbolDescStaticLocalVariable() != null) {
-            script.recordHeapVariable(dataType, name);
+        symbol.typeValue = symbolTypeValue;
+        symbol.address = symbolAddress;
+        symbol.value = symbolValue;
+        symbol.name = ctx.identifier().getText();
+        symbol.type = (StabsScript.Type) visit(ctx.type());
+
+        if (ctx.symbolType() != null && ctx.symbolType().symbolTypeReferenceParameter() != null) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.ReferenceParameter;
+        } else if (ctx.symbolType() != null && ctx.symbolType().symbolTypeGlobalFunction() != null) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.GlobalFunction;
+        } else if (ctx.symbolType() != null && ctx.symbolType().symbolTypeLocalFunction() != null) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.LocalFunction;
+        } else if (ctx.symbolType() != null && ctx.symbolType().symbolTypeGlobalVariable() != null) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.GlobalVariable;
+        } else if (ctx.symbolType() != null && ctx.symbolType().symbolTypeParameterOrFunctionPrototype() != null && symbolTypeValue.equals(StabsScript.StabSymbolTypes.N_FUN)) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.FunctionPrototype;
+        } else if (ctx.symbolType() != null && ctx.symbolType().symbolTypeParameterOrFunctionPrototype() != null && symbolTypeValue.equals(StabsScript.StabSymbolTypes.N_RSYM)) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.RegisterParameter;
+        } else if (ctx.symbolType() != null && ctx.symbolType().symbolTypeStackParameter() != null) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.StackParameter;
+        } else if (ctx.symbolType() != null && ctx.symbolType().symbolTypeRegisterVariable() != null) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.RegisterVariable;
+        } else if (ctx.symbolType() != null && ctx.symbolType().symbolTypeStaticFileVariable() != null) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.StaticFileVariable;
+        } else if (ctx.symbolType() != null && (ctx.symbolType().symbolTypeTagged() != null || ctx.symbolType().symbolTypeTaggedTypedef() != null)) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.TaggedType;
+        } else if (ctx.symbolType() != null && ctx.symbolType().symbolTypeTypedef() != null) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.Typedef;
+        } else if (ctx.symbolType() != null && ctx.symbolType().symbolTypeStaticLocalVariable() != null) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.HeapVariable;
+        } else if (ctx.symbolType() == null && symbolTypeValue.equals(StabsScript.StabSymbolTypes.N_LSYM)) {
+            symbol.symbolType = StabsScript.Symbol.SymbolType.StackVariable;
+        } else {
+            throw new RuntimeException(String.format("Unknown symbol type: %s", ctx.symbolType() != null ? ctx.symbolType().getText() : ctx.symbolType()));
         }
-        return dataType;
+
+        script.putSymbol(symbol);
+
+        return symbol;
     }
 }
